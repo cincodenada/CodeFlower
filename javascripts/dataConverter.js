@@ -24,14 +24,13 @@ var convertFromClocToJSON = function(data) {
       }
       current = current[element];
     });
-    current.language = cols[0];
-    current.size = parseInt(cols[4], 10);
+    current._codeflower_leaf_info = {
+      language: cols[0],
+      size: parseInt(cols[4], 10)
+    }
   });
 
-  json = getChildren(json)[0];
-  json.name = 'root';
-
-  return json;
+  return getHierarchy('root', json);
 };
 
 /**
@@ -59,13 +58,12 @@ var convertFromWcToJSON = function(data) {
           }
           current = current[element];
       });
-      current.size = size;
+      current._codeflower_leaf_info = {
+        size: size
+      }
   });
 
-  json.children = getChildren(json);
-  json.name = 'root';
-
-  return json;
+  return getHierarchy('root', json);
 };
 
 /**
@@ -83,24 +81,20 @@ var convertFromWcToJSON = function(data) {
  *   { name: e, size: 56 }
  * ] } }
  */
-var getChildren = function(json) {
-  var children = [];
-  if (json.language) return children;
-  for (var key in json) {
-    var child = { name: key };
-    if (json[key].size) {
-      // value node
-      child.size = json[key].size;
-      child.language = json[key].language;
-    } else {
-      // children node
-      var childChildren = getChildren(json[key]);
-      if (childChildren) child.children = childChildren;
+var getHierarchy = function(name, node) {
+  const leaf = node._codeflower_leaf_info
+  if(leaf) {
+    return {
+      name: name,
+      size: leaf.size,
+      language: leaf.language,
     }
-    children.push(child);
-    delete json[key];
+  } else {
+    return {
+      name: name,
+      children: Object.keys(node).map(name => getHierarchy(name, node[name]))
+    }
   }
-  return children;
 };
 
 // Recursively count all elements in a tree
@@ -111,3 +105,5 @@ var countElements = function(node) {
   }
   return nbElements;
 };
+
+module.exports = {convertToJSON}
